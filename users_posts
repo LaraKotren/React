@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users and Their Posts</title>
+    <style>
+        /* Основные стили страницы */
+        body {
+            font-family: Arial, sans-serif; /* Шрифт для всей страницы */
+            max-width: 1200px; /* Максимальная ширина контента */
+            margin: 0 auto; /* Центрирование по горизонтали */
+            padding: 20px; /* Отступы от краев */
+        }
+        
+        /* Контейнер для основного содержимого (две колонки) */
+        .container {
+            display: flex; /* Используем flexbox для расположения колонок */
+            gap: 20px; /* Расстояние между колонками */
+        }
+        
+        /* Стили для левой колонки (список пользователей) */
+        .users-list {
+            width: 300px; /* Фиксированная ширина */
+            border-right: 1px solid #ddd; /* Разделительная линия справа */
+            padding-right: 20px; /* Отступ от разделительной линии */
+        }
+        
+        /* Стили для элемента пользователя в списке */
+        .user-item {
+            padding: 10px; /* Внутренние отступы */
+            margin-bottom: 5px; /* Отступ снизу */
+            cursor: pointer; /* Курсор-указатель при наведении */
+            border-radius: 4px; /* Скругление углов */
+        }
+        
+        /* Эффект при наведении на пользователя */
+        .user-item:hover {
+            background-color: #f0f0f0; /* Светло-серый фон */
+        }
+        
+        /* Стиль для активного (выбранного) пользователя */
+        .user-item.active {
+            background-color: #e0e0e0; /* Серый фон */
+            font-weight: bold; /* Жирный шрифт */
+        }
+        
+        /* Стили для правой колонки (посты пользователя) */
+        .posts-container {
+            flex: 1; /* Занимает все оставшееся пространство */
+        }
+        
+        /* Стили карточки поста */
+        .post-card {
+            border: 1px solid #ddd; /* Граница */
+            border-radius: 8px; /* Скругление углов */
+            padding: 15px; /* Внутренние отступы */
+            margin-bottom: 15px; /* Отступ снизу */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Тень */
+        }
+        
+        /* Стиль заголовка поста */
+        .post-title {
+            font-size: 1.2em; /* Размер шрифта */
+            margin-bottom: 8px; /* Отступ снизу */
+            color: #333; /* Цвет текста */
+        }
+        
+        /* Стиль текста поста */
+        .post-body {
+            color: #666; /* Цвет текста */
+            line-height: 1.5; /* Межстрочный интервал */
+        }
+        
+        /* Стиль поля поиска */
+        .search-box {
+            margin-bottom: 20px; /* Отступ снизу */
+            padding: 10px; /* Внутренние отступы */
+            width: 100%; /* Ширина */
+            max-width: 500px; /* Максимальная ширина */
+            font-size: 16px; /* Размер шрифта */
+        }
+    </style>
+</head>
+<body>
+    <!-- Заголовок страницы -->
+    <h1>Users and Their Posts</h1>
+    
+    <!-- Поле для поиска пользователей -->
+    <input type="text" id="searchInput" class="search-box" placeholder="Search users by name...">
+    
+    <!-- Основное хранилище с двумя колонками -->
+    <div class="container">
+        <!-- Левая колонка - список пользователей -->
+        <div id="usersList" class="users-list"></div>
+        
+        <!-- Правая колонка - посты выбранного пользователя -->
+        <div id="postsContainer" class="posts-container"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const usersList = document.getElementById('usersList'); // Список пользователей
+            const postsContainer = document.getElementById('postsContainer'); // Контейнер постов
+            const searchInput = document.getElementById('searchInput'); // Поле поиска
+            
+            // Переменные для хранения данных
+            let allUsers = []; // Все пользователи
+            let allPosts = []; // Все посты
+
+            // Загружаем данные пользователей и постов одновременно
+            Promise.all([
+                fetch('https://jsonplaceholder.typicode.com/users').then(res => res.json()),
+                fetch('https://jsonplaceholder.typicode.com/posts').then(res => res.json())
+            ])
+            .then(([users, posts]) => {
+                // Сохраняем полученные данные
+                allUsers = users;
+                allPosts = posts;
+                // Отображаем пользователей
+                renderUsers(users);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+
+            // Обработчик события ввода в поле поиска
+            searchInput.addEventListener('input', function() {
+                // Получаем значение поиска и приводим к нижнему регистру
+                const searchTerm = this.value.toLowerCase();
+                // Фильтруем пользователей по имени
+                const filteredUsers = allUsers.filter(user => 
+                    user.name.toLowerCase().includes(searchTerm)
+                );
+                // Отображаем отфильтрованный список
+                renderUsers(filteredUsers);
+            });
+
+            // Функция отображения списка пользователей
+            function renderUsers(users) {
+                // Очищаем хранилище
+                usersList.innerHTML = '';
+                
+                // Для каждого пользователя создаем элемент
+                users.forEach(user => {
+                    const userItem = document.createElement('div');
+                    userItem.className = 'user-item';
+                    userItem.textContent = user.name;
+                    
+                    // Добавляем обработчик клика
+                    userItem.addEventListener('click', function() {
+                        // Удаляем класс active у всех пользователей
+                        document.querySelectorAll('.user-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+                        // Добавляем класс active текущему пользователю
+                        this.classList.add('active');
+                        // Показываем посты выбранного пользователя
+                        showUserPosts(user.id);
+                    });
+                    
+                    // Добавляем пользователя в список
+                    usersList.appendChild(userItem);
+                });
+                
+                // Автоматически выбираем первого пользователя (если есть)
+                if (users.length > 0) {
+                    usersList.firstChild.click();
+                }
+            }
+
+            // Функция отображения постов пользователя
+            function showUserPosts(userId) {
+                // Фильтруем посты по ID пользователя
+                const userPosts = allPosts.filter(post => post.userId === userId);
+                
+                // Очищаем контейнер
+                postsContainer.innerHTML = '';
+                
+                // Если постов нет - показываем сообщение
+                if (userPosts.length === 0) {
+                    postsContainer.innerHTML = '<p>No posts found for this user.</p>';
+                    return;
+                }
+                
+                // Для каждого поста создаем карточку
+                userPosts.forEach(post => {
+                    const postCard = document.createElement('div');
+                    postCard.className = 'post-card';
+                    
+                    // Заполняем карточку данными
+                    postCard.innerHTML = `
+                        <div class="post-title">${post.title}</div>
+                        <div class="post-body">${post.body}</div>
+                    `;
+                    
+                    // Добавляем карточку в хранилище
+                    postsContainer.appendChild(postCard);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
